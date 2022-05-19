@@ -674,11 +674,12 @@ class Camera
     if (backgroundHandlerThread != null) {
       backgroundHandlerThread.quitSafely();
       try {
-        backgroundHandlerThread.join();
+        backgroundHandlerThread.join(2500);
       } catch (InterruptedException e) {
         dartMessenger.error(flutterResult, "cameraAccess", e.getMessage(), null);
       }
     }
+
     backgroundHandlerThread = null;
     backgroundHandler = null;
   }
@@ -1097,7 +1098,9 @@ class Camera
 
           @Override
           public void onCancel(Object o) {
-            imageStreamReader.setOnImageAvailableListener(null, backgroundHandler);
+            if (imageStreamReader != null) {
+              imageStreamReader.setOnImageAvailableListener(null, backgroundHandler);
+            }
           }
         });
   }
@@ -1205,7 +1208,6 @@ class Camera
 
   public void dispose() {
     Log.i(TAG, "dispose");
-
     close();
     flutterTexture.release();
     getDeviceOrientationManager().stop();
