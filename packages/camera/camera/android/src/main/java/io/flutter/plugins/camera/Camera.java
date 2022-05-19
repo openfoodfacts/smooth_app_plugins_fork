@@ -502,6 +502,8 @@ class Camera
           TAG,
           "refreshPreviewCaptureSession: captureSession not yet initialized, "
               + "skipping preview capture session refresh.");
+
+      onErrorCallback.onError("captureSession", "captureSession not yet initialized");
       return;
     }
 
@@ -1059,7 +1061,12 @@ class Camera
   /** Pause the preview from dart. */
   public void pausePreview() throws CameraAccessException {
     this.pausedPreview = true;
-    this.captureSession.stopRepeating();
+
+    if (captureSession == null) {
+      dartMessenger.sendCameraErrorEvent("captureSession not yet initialized");
+    } else {
+      this.captureSession.stopRepeating();
+    }
   }
 
   /** Resume the preview from dart. */
