@@ -153,7 +153,7 @@ class Camera
   private CameraCaptureProperties captureProps;
 
   private MethodChannel.Result flutterResult;
-  private boolean oldFlashMode = FlashMode.off;
+  private FlashMode oldFlashMode = FlashMode.off;
 
   /** A CameraDeviceWrapper implementation that forwards calls to a CameraDevice. */
   private class DefaultCameraDeviceWrapper implements CameraDeviceWrapper {
