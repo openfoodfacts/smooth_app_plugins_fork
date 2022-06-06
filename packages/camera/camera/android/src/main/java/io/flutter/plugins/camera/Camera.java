@@ -153,6 +153,7 @@ class Camera
   private CameraCaptureProperties captureProps;
 
   private MethodChannel.Result flutterResult;
+  private boolean oldFlashMode = FlashMode.off;
 
   /** A CameraDeviceWrapper implementation that forwards calls to a CameraDevice. */
   private class DefaultCameraDeviceWrapper implements CameraDeviceWrapper {
@@ -845,11 +846,23 @@ class Camera
    * @param result Flutter result.
    * @param newMode new mode.
    */
-  public void setFlashMode(@NonNull final Result result, @NonNull FlashMode newMode) {
+  public void setFlashMode(@NonNull FlashMode newMode) {
     // Save the new flash mode setting.
     final FlashFeature flashFeature = cameraFeatures.getFlash();
+    oldFlashMode = flashFeature.getValue();
+
     flashFeature.setValue(newMode);
     flashFeature.updateBuilder(previewRequestBuilder);
+  }
+
+  /**
+   * Method handler for setting new flash modes.
+   *
+   * @param result Flutter result.
+   * @param newMode new mode.
+   */
+  public void setFlashMode(@NonNull final Result result, @NonNull FlashMode newMode) {
+    setFlashMode(newMode);
 
     refreshPreviewCaptureSession(
         () -> result.success(null),
@@ -1061,6 +1074,7 @@ class Camera
 
   /** Pause the preview from dart. */
   public void pausePreview() throws CameraAccessException {
+    setFlashMode(FlashMode.off);
     this.pausedPreview = true;
 
     if (captureSession == null) {
@@ -1073,6 +1087,7 @@ class Camera
   /** Resume the preview from dart. */
   public void resumePreview() {
     this.pausedPreview = false;
+    setFlashMode(oldFlashMode);
     this.refreshPreviewCaptureSession(
         null, (code, message) -> dartMessenger.sendCameraErrorEvent(message));
   }
