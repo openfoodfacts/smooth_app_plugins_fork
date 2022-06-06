@@ -79,8 +79,6 @@ public class ExposurePointFeature extends CameraFeature<Point> {
         requestBuilder.set(
                 CaptureRequest.CONTROL_AE_REGIONS,
                 exposureRectangle == null ? null : new MeteringRectangle[]{exposureRectangle});
-
-        requestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
     }
 
     private void buildExposureRectangle() {
