@@ -4,6 +4,7 @@
 
 package io.flutter.plugins.camera.features.focuspoint;
 
+import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.util.Size;
@@ -72,9 +73,15 @@ public class FocusPointFeature extends CameraFeature<Point> {
     if (!checkIsSupported()) {
       return;
     }
+
     requestBuilder.set(
         CaptureRequest.CONTROL_AF_REGIONS,
         focusRectangle == null ? null : new MeteringRectangle[] {focusRectangle});
+
+    requestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+    requestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
+    requestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
+
   }
 
   private void buildFocusRectangle() {
