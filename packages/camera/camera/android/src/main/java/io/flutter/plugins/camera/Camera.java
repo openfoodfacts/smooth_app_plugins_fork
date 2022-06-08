@@ -1145,6 +1145,7 @@ class Camera
      * Resume the preview from dart.
      */
     public void resumePreview() {
+        this.backgroundHandler.removeCallbacks(reRunFocus);
         this.pausedPreview = false;
         setFlashMode(oldFlashMode);
         this.refreshPreviewCaptureSession(
