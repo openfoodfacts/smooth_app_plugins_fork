@@ -520,8 +520,6 @@ class Camera
     // Send a repeating request to refresh  capture session.
     private void refreshPreviewCaptureSession(
             @Nullable Runnable onSuccessCallback, @NonNull ErrorCallback onErrorCallback) {
-        Log.i(TAG, "refreshPreviewCaptureSession");
-
         if (captureSession == null) {
             Log.i(
                     TAG,
