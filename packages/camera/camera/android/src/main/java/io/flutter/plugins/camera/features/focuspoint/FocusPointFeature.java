@@ -74,6 +74,9 @@ public class FocusPointFeature extends CameraFeature<Point> {
       return;
     }
 
+    requestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+    requestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+
     requestBuilder.set(
         CaptureRequest.CONTROL_AF_REGIONS,
         focusRectangle == null ? null : new MeteringRectangle[] {focusRectangle});

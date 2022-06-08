@@ -976,7 +976,7 @@ class Camera
    * @param result Flutter result.
    * @param point the new coordinates.
    */
-  public void setFocusPoint(@NonNull final Result result, @Nullable Point point) {
+  public void setFocusPoint(@NonNull final Result result, @Nullable Point point) throws CameraAccessException {
     final FocusPointFeature focusPointFeature = cameraFeatures.getFocusPoint();
     focusPointFeature.setValue(point);
     focusPointFeature.updateBuilder(previewRequestBuilder);
@@ -985,7 +985,22 @@ class Camera
         () -> result.success(null),
         (code, message) -> result.error("setFocusPointFailed", "Could not set focus point.", null));
 
-    this.setFocusMode(null, cameraFeatures.getAutoFocus().getValue());
+    captureSession.capture(previewRequestBuilder.build(), new CameraCaptureSession.CaptureCallback() {
+      @Override
+      public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+        super.onCaptureCompleted(session, request, result);
+
+        try {
+          previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
+          captureSession.setRepeatingRequest(previewRequestBuilder.build(), cameraCaptureCallback, backgroundHandler);
+        } catch (CameraAccessException e) {
+          e.printStackTrace();
+        }
+
+      }
+    }, backgroundHandler);
+
+    //this.setFocusMode(null, cameraFeatures.getAutoFocus().getValue());
   }
 
   /**
