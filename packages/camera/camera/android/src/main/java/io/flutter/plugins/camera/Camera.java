@@ -16,6 +16,7 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.OutputConfiguration;
 import android.hardware.camera2.params.SessionConfiguration;
@@ -1016,15 +1017,74 @@ class Camera
     public void setFocusPoint(@Nullable final Result result, @Nullable Point point) throws CameraAccessException {
         backgroundHandler.removeCallbacks(reRunFocus);
 
-        final FocusPointFeature focusPointFeature = cameraFeatures.getFocusPoint();
-        focusPointFeature.setValue(point);
-        focusPointFeature.updateBuilder(previewRequestBuilder);
+        if (!pausedPreview) {
+            captureSession.stopRepeating();
 
-        refreshPreviewCaptureSession(
-                result != null ? () -> result.success(null) : null,
-                (code, message) -> result.error("setFocusPointFailed", "Could not set focus point.", null));
+            previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+            previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+            captureSession.capture(previewRequestBuilder.build(), new CameraCaptureSession.CaptureCallback() {
+                @Override
+                public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result1) {
+                    super.onCaptureCompleted(session, request, result1);
 
-        backgroundHandler.postDelayed(reRunFocus, TimeUnit.MILLISECONDS.toMillis(1500));
+                    final FocusPointFeature focusPointFeature = cameraFeatures.getFocusPoint();
+                    focusPointFeature.setValue(point);
+                    focusPointFeature.updateBuilder(previewRequestBuilder);
+
+                    refreshPreviewCaptureSession(new Runnable() {
+                        @Override
+                        public void run() {
+                            backgroundHandler.postDelayed(reRunFocus, TimeUnit.SECONDS.toMillis(2));
+
+                            if (result != null) {
+                                result.success(null);
+                            }
+                        }
+                    }, new ErrorCallback() {
+                        @Override
+                        public void onError(String errorCode, String errorMessage) {
+
+                        }
+                    });
+                }
+            }, backgroundHandler);
+        }
+
+        /*
+
+        refreshPreviewCaptureSession(new Runnable() {
+            @Override
+            public void run() {
+                final FocusPointFeature focusPointFeature = cameraFeatures.getFocusPoint();
+                focusPointFeature.setValue(point);
+                focusPointFeature.updateBuilder(previewRequestBuilder);
+
+                refreshPreviewCaptureSession(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                backgroundHandler.postDelayed(reRunFocus, TimeUnit.SECONDS.toMillis(5));
+
+                                if (result != null) {
+                                    result.success(null);
+                                }
+                            }
+                        },
+                        new ErrorCallback() {
+                            @Override
+                            public void onError(String errorCode, String errorMessage) {
+                                if (result != null) {
+                                    result.error("setFocusPointFailed", "Could not set focus point.", null);
+                                }
+                            }
+                        });
+            }
+        }, new ErrorCallback() {
+            @Override
+            public void onError(String errorCode, String errorMessage) {
+                System.out.println();
+            }
+        });*/
     }
 
     private final Runnable reRunFocus = new Runnable() {
@@ -1033,7 +1093,8 @@ class Camera
             try {
                 final FocusPointFeature focusPointFeature = cameraFeatures.getFocusPoint();
                 setFocusPoint(null, focusPointFeature.getValue());
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
     };
 
