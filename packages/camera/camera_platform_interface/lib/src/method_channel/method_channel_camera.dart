@@ -357,7 +357,7 @@ class MethodChannelCamera extends CameraPlatform {
       );
 
   @override
-  Future<void> setFocusPoint(int cameraId, Point<double>? point) {
+  Future<void> setFocusPoint(int cameraId, Point<double>? point, FocusPointMode? mode) {
     assert(point == null || point.x >= 0 && point.x <= 1);
     assert(point == null || point.y >= 0 && point.y <= 1);
 
@@ -365,6 +365,7 @@ class MethodChannelCamera extends CameraPlatform {
       'setFocusPoint',
       <String, dynamic>{
         'cameraId': cameraId,
+        'mode': serializeFocusPointMode(mode),
         'reset': point == null,
         'x': point?.x,
         'y': point?.y,

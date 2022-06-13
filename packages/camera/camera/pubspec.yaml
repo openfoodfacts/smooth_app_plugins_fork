@@ -22,8 +22,16 @@ flutter:
         default_package: camera_web
 
 dependencies:
-  camera_platform_interface: ^2.1.0
-  camera_web: ^0.2.1
+  camera_platform_interface:
+    git:
+      url: 'https://github.com/g123k/plugins.git'
+      ref: 'smooth_camera'
+      path: 'packages/camera/camera_platform_interface'
+  camera_web:
+    git:
+      url: 'https://github.com/g123k/plugins.git'
+      ref: 'smooth_camera'
+      path: 'packages/camera/camera_web'
   flutter:
     sdk: flutter
   flutter_plugin_android_lifecycle: ^2.0.2

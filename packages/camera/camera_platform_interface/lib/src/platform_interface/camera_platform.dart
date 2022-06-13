@@ -209,7 +209,8 @@ abstract class CameraPlatform extends PlatformInterface {
   ///
   /// Supplying `null` for the [point] argument will result in resetting to the
   /// original focus point value.
-  Future<void> setFocusPoint(int cameraId, Point<double>? point) {
+  Future<void> setFocusPoint(
+      int cameraId, Point<double>? point, FocusPointMode? mode) {
     throw UnimplementedError('setFocusPoint() is not implemented.');
   }
 

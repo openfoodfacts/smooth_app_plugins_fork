@@ -57,6 +57,8 @@ import io.flutter.plugins.camera.features.exposurepoint.ExposurePointFeature;
 import io.flutter.plugins.camera.features.flash.FlashFeature;
 import io.flutter.plugins.camera.features.flash.FlashMode;
 import io.flutter.plugins.camera.features.focuspoint.FocusPointFeature;
+import io.flutter.plugins.camera.features.focuspoint.FocusPointHelper;
+import io.flutter.plugins.camera.features.focuspoint.FocusPointMode;
 import io.flutter.plugins.camera.features.resolution.ResolutionFeature;
 import io.flutter.plugins.camera.features.resolution.ResolutionPreset;
 import io.flutter.plugins.camera.features.sensororientation.DeviceOrientationManager;
@@ -700,7 +702,8 @@ class Camera
      */
     public void stopBackgroundThread() {
         if (backgroundHandlerThread != null) {
-            backgroundHandler.removeCallbacks(reRunFocus);
+            backgroundHandler.removeCallbacks(reRunOldFocus);
+            backgroundHandler.removeCallbacks(reRunNewFocus);
             backgroundHandlerThread.quitSafely();
             try {
                 backgroundHandlerThread.join(2500);
@@ -875,7 +878,6 @@ class Camera
     /**
      * Method handler for setting new flash modes.
      *
-     * @param result  Flutter result.
      * @param newMode new mode.
      */
     public void setFlashMode(@NonNull FlashMode newMode) {
@@ -1014,8 +1016,30 @@ class Camera
      * @param result Flutter result.
      * @param point  the new coordinates.
      */
-    public void setFocusPoint(@Nullable final Result result, @Nullable Point point) throws CameraAccessException {
-        backgroundHandler.removeCallbacks(reRunFocus);
+    public void setFocusPoint(@Nullable final Result result, @Nullable Point point, FocusPointMode mode) throws CameraAccessException {
+        if (mode == null || mode == FocusPointMode.auto) {
+            mode = FocusPointHelper.detectFocusPointMode();
+        }
+
+        switch (mode) {
+            case newAlgorithm:
+                setNewFocusPoint(result, point);
+                break;
+            case oldAlgorithm:
+                setOldFocusPoint(result, point);
+                break;
+        }
+    }
+
+    /**
+     * Sets new focus point from dart.
+     *
+     * @param result Flutter result.
+     * @param point  the new coordinates.
+     */
+    public void setOldFocusPoint(@Nullable final Result result, @Nullable Point point) throws CameraAccessException {
+        backgroundHandler.removeCallbacks(reRunOldFocus);
+        backgroundHandler.removeCallbacks(reRunNewFocus);
 
         if (!pausedPreview) {
             captureSession.stopRepeating();
@@ -1031,68 +1055,55 @@ class Camera
                     focusPointFeature.setValue(point);
                     focusPointFeature.updateBuilder(previewRequestBuilder);
 
-                    refreshPreviewCaptureSession(new Runnable() {
-                        @Override
-                        public void run() {
-                            backgroundHandler.postDelayed(reRunFocus, TimeUnit.SECONDS.toMillis(2));
+                    refreshPreviewCaptureSession(() -> {
+                        backgroundHandler.postDelayed(reRunOldFocus, TimeUnit.SECONDS.toMillis(3));
 
-                            if (result != null) {
-                                result.success(null);
-                            }
+                        if (result != null) {
+                            result.success(null);
                         }
-                    }, new ErrorCallback() {
-                        @Override
-                        public void onError(String errorCode, String errorMessage) {
-
+                    }, (errorCode, errorMessage) -> {
+                        if (result != null) {
+                            result.error(errorCode, errorMessage, null);
                         }
                     });
                 }
             }, backgroundHandler);
         }
-
-        /*
-
-        refreshPreviewCaptureSession(new Runnable() {
-            @Override
-            public void run() {
-                final FocusPointFeature focusPointFeature = cameraFeatures.getFocusPoint();
-                focusPointFeature.setValue(point);
-                focusPointFeature.updateBuilder(previewRequestBuilder);
-
-                refreshPreviewCaptureSession(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                backgroundHandler.postDelayed(reRunFocus, TimeUnit.SECONDS.toMillis(5));
-
-                                if (result != null) {
-                                    result.success(null);
-                                }
-                            }
-                        },
-                        new ErrorCallback() {
-                            @Override
-                            public void onError(String errorCode, String errorMessage) {
-                                if (result != null) {
-                                    result.error("setFocusPointFailed", "Could not set focus point.", null);
-                                }
-                            }
-                        });
-            }
-        }, new ErrorCallback() {
-            @Override
-            public void onError(String errorCode, String errorMessage) {
-                System.out.println();
-            }
-        });*/
     }
 
-    private final Runnable reRunFocus = new Runnable() {
+    private final Runnable reRunOldFocus = new Runnable() {
         @Override
         public void run() {
             try {
                 final FocusPointFeature focusPointFeature = cameraFeatures.getFocusPoint();
-                setFocusPoint(null, focusPointFeature.getValue());
+                setOldFocusPoint(null, focusPointFeature.getValue());
+            } catch (Exception ignored) {
+            }
+        }
+    };
+
+    public void setNewFocusPoint(@Nullable final Result result, @Nullable Point point) throws CameraAccessException {
+        backgroundHandler.removeCallbacks(reRunNewFocus);
+        backgroundHandler.removeCallbacks(reRunOldFocus);
+
+        final FocusPointFeature focusPointFeature = cameraFeatures.getFocusPoint();
+        focusPointFeature.setMode(FocusPointMode.newAlgorithm);
+        focusPointFeature.setValue(point);
+        focusPointFeature.updateBuilder(previewRequestBuilder);
+
+        refreshPreviewCaptureSession(
+                result != null ? () -> result.success(null) : null,
+                (code, message) -> result.error("setFocusPointFailed", "Could not set focus point.", null));
+
+        backgroundHandler.postDelayed(reRunNewFocus, TimeUnit.MILLISECONDS.toMillis(1650));
+    }
+
+    private final Runnable reRunNewFocus = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                final FocusPointFeature focusPointFeature = cameraFeatures.getFocusPoint();
+                setNewFocusPoint(null, focusPointFeature.getValue());
             } catch (Exception ignored) {
             }
         }
@@ -1206,7 +1217,8 @@ class Camera
      * Resume the preview from dart.
      */
     public void resumePreview() {
-        this.backgroundHandler.removeCallbacks(reRunFocus);
+        this.backgroundHandler.removeCallbacks(reRunOldFocus);
+        this.backgroundHandler.removeCallbacks(reRunNewFocus);
         this.pausedPreview = false;
         setFlashMode(oldFlashMode);
         this.refreshPreviewCaptureSession(

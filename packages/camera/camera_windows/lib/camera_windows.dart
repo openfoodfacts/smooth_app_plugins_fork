@@ -306,7 +306,7 @@ class CameraWindows extends CameraPlatform {
   }
 
   @override
-  Future<void> setFocusPoint(int cameraId, Point<double>? point) async {
+  Future<void> setFocusPoint(int cameraId, Point<double>? point, FocusPointMode? mode) async {
     assert(point == null || point.x >= 0 && point.x <= 1);
     assert(point == null || point.y >= 0 && point.y <= 1);
 

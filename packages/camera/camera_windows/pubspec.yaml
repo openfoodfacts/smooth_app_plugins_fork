@@ -17,7 +17,12 @@ flutter:
         dartPluginClass: CameraWindows
 
 dependencies:
-  camera_platform_interface: ^2.1.2
+  camera_platform_interface:
+    git:
+      url: 'https://github.com/g123k/plugins.git'
+      ref: 'smooth_camera'
+      path: 'packages/camera/camera_platform_interface'
+
   cross_file: ^0.3.1
   flutter:
     sdk: flutter

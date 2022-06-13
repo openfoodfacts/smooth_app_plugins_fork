@@ -562,7 +562,7 @@ class CameraPlugin extends CameraPlatform {
   }
 
   @override
-  Future<void> setFocusPoint(int cameraId, Point<double>? point) {
+  Future<void> setFocusPoint(int cameraId, Point<double>? point, FocusPointMode? mode) {
     throw UnimplementedError('setFocusPoint() is not implemented.');
   }
 

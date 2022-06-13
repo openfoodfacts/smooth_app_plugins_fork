@@ -22,6 +22,7 @@ import io.flutter.plugins.camera.features.Point;
 import io.flutter.plugins.camera.features.autofocus.FocusMode;
 import io.flutter.plugins.camera.features.exposurelock.ExposureMode;
 import io.flutter.plugins.camera.features.flash.FlashMode;
+import io.flutter.plugins.camera.features.focuspoint.FocusPointMode;
 import io.flutter.plugins.camera.features.resolution.ResolutionPreset;
 import io.flutter.view.TextureRegistry;
 import java.util.HashMap;
@@ -235,14 +236,17 @@ final class MethodCallHandlerImpl implements MethodChannel.MethodCallHandler {
       case "setFocusPoint":
         {
           Boolean reset = call.argument("reset");
+          String modeStr = call.argument("mode");
+          FocusPointMode mode = FocusPointMode.getValueForString(modeStr);
           Double x = null;
           Double y = null;
+
           if (reset == null || !reset) {
             x = call.argument("x");
             y = call.argument("y");
           }
           try {
-            camera.setFocusPoint(result, new Point(x, y));
+            camera.setFocusPoint(result, new Point(x, y), mode);
           } catch (Exception e) {
             handleException(e, result);
           }

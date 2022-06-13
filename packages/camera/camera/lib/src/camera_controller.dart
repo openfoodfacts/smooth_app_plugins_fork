@@ -794,7 +794,7 @@ class CameraController extends ValueNotifier<CameraValue> {
   ///
   /// Supplying a `null` value will reset the focus point to it's default
   /// value.
-  Future<void> setFocusPoint(Offset? point) async {
+  Future<void> setFocusPoint(Offset? point, FocusPointMode? mode) async {
     if (point != null &&
         (point.dx < 0 || point.dx > 1 || point.dy < 0 || point.dy > 1)) {
       throw ArgumentError(
@@ -809,6 +809,7 @@ class CameraController extends ValueNotifier<CameraValue> {
                 point.dx,
                 point.dy,
               ),
+        mode,
       );
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
