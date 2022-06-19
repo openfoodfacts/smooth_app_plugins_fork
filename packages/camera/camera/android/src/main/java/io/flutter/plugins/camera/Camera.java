@@ -1082,7 +1082,7 @@ class Camera
         }
     };
 
-    public void setNewFocusPoint(@Nullable final Result result, @Nullable Point point) throws CameraAccessException {
+    public void setNewFocusPoint(@Nullable final Result result, @Nullable Point point) {
         backgroundHandler.removeCallbacks(reRunNewFocus);
         backgroundHandler.removeCallbacks(reRunOldFocus);
 
@@ -1217,8 +1217,11 @@ class Camera
      * Resume the preview from dart.
      */
     public void resumePreview() {
-        this.backgroundHandler.removeCallbacks(reRunOldFocus);
-        this.backgroundHandler.removeCallbacks(reRunNewFocus);
+        if (this.backgroundHandler != null) {
+            this.backgroundHandler.removeCallbacks(reRunOldFocus);
+            this.backgroundHandler.removeCallbacks(reRunNewFocus);
+        }
+
         this.pausedPreview = false;
         setFlashMode(oldFlashMode);
         this.refreshPreviewCaptureSession(
