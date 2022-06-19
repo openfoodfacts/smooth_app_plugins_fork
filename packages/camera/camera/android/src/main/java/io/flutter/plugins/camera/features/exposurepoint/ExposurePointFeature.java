@@ -73,7 +73,7 @@ public class ExposurePointFeature extends CameraFeature<Point> {
 
     @Override
     public void updateBuilder(CaptureRequest.Builder requestBuilder) {
-        if (!checkIsSupported()) {
+        if (!checkIsSupported() && cameraBoundaries != null) {
             return;
         }
         requestBuilder.set(
