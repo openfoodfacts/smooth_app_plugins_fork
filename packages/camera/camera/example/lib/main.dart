@@ -487,7 +487,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                         : null,
                     onLongPress: () {
                       if (controller != null) {
-                        controller!.setFocusPoint(null);
+                        controller!.setFocusPoint(null, null);
                       }
                       showInSnackBar('Resetting focus point');
                     },
@@ -629,7 +629,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
       details.localPosition.dy / constraints.maxHeight,
     );
     cameraController.setExposurePoint(offset);
-    cameraController.setFocusPoint(offset);
+    cameraController.setFocusPoint(offset, FocusPointMode.newAlgorithm);
   }
 
   Future<void> onNewCameraSelected(CameraDescription cameraDescription) async {
