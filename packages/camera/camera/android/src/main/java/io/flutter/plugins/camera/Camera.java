@@ -785,7 +785,7 @@ class Camera
         if (BuildConfig.DEBUG) {
             Log.i(TAG, "unlockAutoFocus");
         }
-        
+
         if (captureSession == null) {
             Log.i(TAG, "[unlockAutoFocus] captureSession null, returning");
             return;

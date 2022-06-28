@@ -50,6 +50,7 @@ public class FlashFeature extends CameraFeature<FlashMode> {
 
     switch (currentSetting) {
       case off:
+      case auto:
         requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         requestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF);
         break;
@@ -63,12 +64,6 @@ public class FlashFeature extends CameraFeature<FlashMode> {
       case torch:
         requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         requestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_TORCH);
-        break;
-
-      case auto:
-        requestBuilder.set(
-            CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
-        requestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF);
         break;
     }
   }
