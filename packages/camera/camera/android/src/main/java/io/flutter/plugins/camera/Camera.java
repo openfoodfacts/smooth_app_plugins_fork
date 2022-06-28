@@ -268,13 +268,17 @@ class Camera
      */
     private void updateBuilderSettings(CaptureRequest.Builder requestBuilder) {
         for (CameraFeature feature : cameraFeatures.getAllFeatures()) {
-            Log.d(TAG, "Updating builder with feature: " + feature.getDebugName());
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Updating builder with feature: " + feature.getDebugName() + " " + feature.getValue());
+            }
             feature.updateBuilder(requestBuilder);
         }
     }
 
     private void prepareMediaRecorder(String outputFilePath) throws IOException {
-        Log.i(TAG, "prepareMediaRecorder");
+        if (BuildConfig.DEBUG) {
+            Log.i(TAG, "prepareMediaRecorder");
+        }
 
         if (mediaRecorder != null) {
             mediaRecorder.release();
@@ -328,7 +332,9 @@ class Camera
         // For image streaming, use the provided image format or fall back to YUV420.
         Integer imageFormat = supportedImageFormats.get(imageFormatGroup);
         if (imageFormat == null) {
-            Log.w(TAG, "The selected imageFormatGroup is not supported by Android. Defaulting to yuv420");
+            if (BuildConfig.DEBUG) {
+                Log.w(TAG, "The selected imageFormatGroup is not supported by Android. Defaulting to yuv420");
+            }
             imageFormat = ImageFormat.YUV_420_888;
         }
         imageStreamReader =
@@ -363,7 +369,9 @@ class Camera
 
                     @Override
                     public void onClosed(@NonNull CameraDevice camera) {
-                        Log.i(TAG, "open | onClosed");
+                        if (BuildConfig.DEBUG) {
+                            Log.i(TAG, "open | onClosed");
+                        }
 
                         // Prevents calls to methods that would otherwise result in IllegalStateException exceptions.
                         cameraDevice = null;
@@ -373,7 +381,9 @@ class Camera
 
                     @Override
                     public void onDisconnected(@NonNull CameraDevice cameraDevice) {
-                        Log.i(TAG, "open | onDisconnected");
+                        if (BuildConfig.DEBUG) {
+                            Log.i(TAG, "open | onDisconnected");
+                        }
 
                         close();
                         dartMessenger.sendCameraErrorEvent("The camera was disconnected.");
@@ -381,7 +391,9 @@ class Camera
 
                     @Override
                     public void onError(@NonNull CameraDevice cameraDevice, int errorCode) {
-                        Log.i(TAG, "open | onError");
+                        if (BuildConfig.DEBUG) {
+                            Log.i(TAG, "open | onError");
+                        }
 
                         close();
                         String errorDescription;
@@ -454,7 +466,10 @@ class Camera
 
                     @Override
                     public void onConfigured(@NonNull CameraCaptureSession session) {
-                        Log.i(TAG, "CameraCaptureSession onConfigured");
+                        if (BuildConfig.DEBUG) {
+                            Log.i(TAG, "CameraCaptureSession onConfigured");
+                        }
+
                         // Camera was already closed.
                         if (cameraDevice == null || captureSessionClosed) {
                             dartMessenger.sendCameraErrorEvent("The camera was closed during configuration.");
@@ -462,7 +477,9 @@ class Camera
                         }
                         captureSession = session;
 
-                        Log.i(TAG, "Updating builder settings");
+                        if (BuildConfig.DEBUG) {
+                            Log.i(TAG, "Updating builder settings");
+                        }
                         updateBuilderSettings(previewRequestBuilder);
 
                         refreshPreviewCaptureSession(
@@ -471,13 +488,17 @@ class Camera
 
                     @Override
                     public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-                        Log.i(TAG, "CameraCaptureSession onConfigureFailed");
+                        if (BuildConfig.DEBUG) {
+                            Log.i(TAG, "CameraCaptureSession onConfigureFailed");
+                        }
                         dartMessenger.sendCameraErrorEvent("Failed to configure camera session.");
                     }
 
                     @Override
                     public void onClosed(@NonNull CameraCaptureSession session) {
-                        Log.i(TAG, "CameraCaptureSession onClosed");
+                        if (BuildConfig.DEBUG) {
+                            Log.i(TAG, "CameraCaptureSession onClosed");
+                        }
                         captureSessionClosed = true;
                     }
                 };
@@ -586,7 +607,10 @@ class Camera
      * response is received in {@link #cameraCaptureCallback} from lockFocus().
      */
     private void runPrecaptureSequence() {
-        Log.i(TAG, "runPrecaptureSequence");
+        if (BuildConfig.DEBUG) {
+            Log.i(TAG, "runPrecaptureSequence");
+        }
+
         try {
             // First set precapture state to idle or else it can hang in STATE_WAITING_PRECAPTURE_START.
             previewRequestBuilder.set(
@@ -621,7 +645,10 @@ class Camera
      * #cameraCaptureCallback} from both lockFocus().
      */
     private void takePictureAfterPrecapture() {
-        Log.i(TAG, "captureStillPicture");
+        if (BuildConfig.DEBUG) {
+            Log.i(TAG, "captureStillPicture");
+        }
+
         cameraCaptureCallback.setCameraState(CameraState.STATE_CAPTURING);
 
         if (cameraDevice == null) {
@@ -668,7 +695,9 @@ class Camera
 
         try {
             captureSession.stopRepeating();
-            Log.i(TAG, "sending capture request");
+            if (BuildConfig.DEBUG) {
+                Log.i(TAG, "sending capture request");
+            }
             captureSession.capture(stillBuilder.build(), captureCallback, backgroundHandler);
         } catch (CameraAccessException e) {
             dartMessenger.error(flutterResult, "cameraAccess", e.getMessage(), null);
@@ -720,14 +749,19 @@ class Camera
      * Start capturing a picture, doing autofocus first.
      */
     private void runPictureAutoFocus() {
-        Log.i(TAG, "runPictureAutoFocus");
+        if (BuildConfig.DEBUG) {
+            Log.i(TAG, "runPictureAutoFocus");
+        }
 
         cameraCaptureCallback.setCameraState(CameraState.STATE_WAITING_FOCUS);
         lockAutoFocus();
     }
 
     private void lockAutoFocus() {
-        Log.i(TAG, "lockAutoFocus");
+        if (BuildConfig.DEBUG) {
+            Log.i(TAG, "lockAutoFocus");
+        }
+
         if (captureSession == null) {
             Log.i(TAG, "[unlockAutoFocus] captureSession null, returning");
             return;
@@ -748,7 +782,10 @@ class Camera
      * Cancel and reset auto focus state and refresh the preview session.
      */
     private void unlockAutoFocus() {
-        Log.i(TAG, "unlockAutoFocus");
+        if (BuildConfig.DEBUG) {
+            Log.i(TAG, "unlockAutoFocus");
+        }
+        
         if (captureSession == null) {
             Log.i(TAG, "[unlockAutoFocus] captureSession null, returning");
             return;
