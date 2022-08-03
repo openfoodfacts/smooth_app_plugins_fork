@@ -965,13 +965,18 @@ class Camera
      */
     public void setExposurePoint(@NonNull final Result result, @Nullable Point point) {
         final ExposurePointFeature exposurePointFeature = cameraFeatures.getExposurePoint();
-        exposurePointFeature.setValue(point);
-        exposurePointFeature.updateBuilder(previewRequestBuilder);
 
-        refreshPreviewCaptureSession(
-                () -> result.success(null),
-                (code, message) ->
-                        result.error("setExposurePointFailed", "Could not set exposure point.", null));
+        try {
+            exposurePointFeature.setValue(point);
+            exposurePointFeature.updateBuilder(previewRequestBuilder);
+
+            refreshPreviewCaptureSession(
+                    () -> result.success(null),
+                    (code, message) ->
+                            result.error("setExposurePointFailed", "Could not set exposure point.", null));
+        } catch (AssertionError error) {
+            result.error("setExposurePointFailed", "Could not set exposure point.", null));
+        }
     }
 
     /**
