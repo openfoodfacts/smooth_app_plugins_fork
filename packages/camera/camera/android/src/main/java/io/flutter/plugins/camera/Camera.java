@@ -975,7 +975,7 @@ class Camera
                     (code, message) ->
                             result.error("setExposurePointFailed", "Could not set exposure point.", null));
         } catch (AssertionError error) {
-            result.error("setExposurePointFailed", "Could not set exposure point.", null));
+            result.error("setExposurePointFailed", "Could not set exposure point.", null);
         }
     }
 
