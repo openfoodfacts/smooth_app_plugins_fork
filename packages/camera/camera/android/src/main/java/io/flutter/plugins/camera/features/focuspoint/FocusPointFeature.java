@@ -105,6 +105,18 @@ public class FocusPointFeature extends CameraFeature<Point> {
         requestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
     }
 
+    public void updateRegionsBuilder(CaptureRequest.Builder requestBuilder) {
+        if (!checkIsSupported()) {
+            return;
+        }
+
+        requestBuilder.set(
+                CaptureRequest.CONTROL_AF_REGIONS,
+                focusRectangle == null ? null : new MeteringRectangle[]{focusRectangle});
+    }
+
+
+
     private void buildFocusRectangle() {
         if (this.cameraBoundaries == null) {
             throw new AssertionError(

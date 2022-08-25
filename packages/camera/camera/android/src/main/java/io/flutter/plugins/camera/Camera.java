@@ -16,7 +16,6 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.OutputConfiguration;
 import android.hardware.camera2.params.SessionConfiguration;
@@ -977,6 +976,7 @@ class Camera
         } catch (AssertionError error) {
             result.error("setExposurePointFailed", "Could not set exposure point.", null);
         }
+
     }
 
     /**
@@ -1128,16 +1128,78 @@ class Camera
         backgroundHandler.removeCallbacks(reRunNewFocus);
         backgroundHandler.removeCallbacks(reRunOldFocus);
 
-        final FocusPointFeature focusPointFeature = cameraFeatures.getFocusPoint();
-        focusPointFeature.setMode(FocusPointMode.newAlgorithm);
-        focusPointFeature.setValue(point);
-        focusPointFeature.updateBuilder(previewRequestBuilder);
+        try {
+            if (!pausedPreview) {
+                captureSession.stopRepeating();
 
-        refreshPreviewCaptureSession(
-                result != null ? () -> result.success(null) : null,
-                (code, message) -> result.error("setFocusPointFailed", "Could not set focus point.", null));
+                final FocusPointFeature focusPointFeature = cameraFeatures.getFocusPoint();
+                focusPointFeature.setMode(FocusPointMode.newAlgorithm);
+                focusPointFeature.setValue(point);
 
-        backgroundHandler.postDelayed(reRunNewFocus, TimeUnit.MILLISECONDS.toMillis(1650));
+                updatePreviewBuilderStep1(focusPointFeature, result);
+            }
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+            onFocusUpdateError();
+        }
+    }
+
+    private void onFocusUpdateError() {
+        backgroundHandler.postDelayed(reRunNewFocus, 2500);
+    }
+
+    private void updatePreviewBuilderStep1(FocusPointFeature focusPointFeature, @Nullable final Result result) throws CameraAccessException {
+        previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+        previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+        focusPointFeature.updateRegionsBuilder(previewRequestBuilder);
+
+        captureSession.capture(
+                previewRequestBuilder.build(), new CameraCaptureSession.CaptureCallback() {
+                    @Override
+                    public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result1) {
+                        super.onCaptureCompleted(session, request, result1);
+                        captureSession = session;
+
+                        try {
+                            updatePreviewBuilderStep2(focusPointFeature, result);
+                        } catch (CameraAccessException ex) {
+                            ex.printStackTrace();
+                            onFocusUpdateError();
+                        }
+                    }
+                }, backgroundHandler);
+    }
+
+    private void updatePreviewBuilderStep2(FocusPointFeature focusPointFeature, @Nullable final Result result) throws CameraAccessException {
+        previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
+        previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
+        focusPointFeature.updateRegionsBuilder(previewRequestBuilder);
+
+        captureSession.capture(
+                previewRequestBuilder.build(), new CameraCaptureSession.CaptureCallback() {
+                    @Override
+                    public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result1) {
+                        super.onCaptureCompleted(session, request, result1);
+                        captureSession = session;
+                        updatePreviewBuilderStep3(focusPointFeature, result);
+                    }
+                }, backgroundHandler);
+    }
+
+    private void updatePreviewBuilderStep3(FocusPointFeature focusPointFeature, @Nullable final Result result) {
+        previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
+        previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
+        focusPointFeature.updateRegionsBuilder(previewRequestBuilder);
+
+        refreshPreviewCaptureSession(() -> {
+                    if (result != null) {
+                        result.success(null);
+                    }
+
+                    backgroundHandler.postDelayed(reRunNewFocus, 2500);
+                },
+                result != null ? ((code, message) -> result.error("setFocusPointFailed", "Could not set focus point.", null)) :
+                        (code, message) -> {});
     }
 
     private final Runnable reRunNewFocus = new Runnable() {
