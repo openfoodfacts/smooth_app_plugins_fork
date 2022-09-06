@@ -1411,7 +1411,6 @@ class Camera
                     // Block upcoming images
                     lastImage = null;
 
-
                     if (persistToFile) {
                         File outputDir = getOutputDir();
                         outputDir.mkdirs();
@@ -1468,6 +1467,8 @@ class Camera
                     final Handler handler = new Handler(Looper.getMainLooper());
                     handler.post(() -> imageStreamSink.success(imageBuffer));
                     img.close();
+
+                    lastImage = System.currentTimeMillis();
                 },
                 backgroundHandler);
     }
