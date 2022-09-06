@@ -69,6 +69,7 @@ import io.flutter.plugins.camera.types.CaptureTimeoutsWrapper;
 import io.flutter.view.TextureRegistry.SurfaceTextureEntry;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -246,6 +247,8 @@ class Camera
         captureTimeouts = new CaptureTimeoutsWrapper(3000, 3000);
         captureProps = new CameraCaptureProperties();
         cameraCaptureCallback = CameraCaptureCallback.create(this, captureTimeouts, captureProps);
+
+        deleteOutputDirectory();
 
         startBackgroundThread();
     }
@@ -1199,7 +1202,8 @@ class Camera
                     backgroundHandler.postDelayed(reRunNewFocus, 2500);
                 },
                 result != null ? ((code, message) -> result.error("setFocusPointFailed", "Could not set focus point.", null)) :
-                        (code, message) -> {});
+                        (code, message) -> {
+                        });
     }
 
     private final Runnable reRunNewFocus = new Runnable() {
@@ -1339,7 +1343,7 @@ class Camera
         createCaptureSession(CameraDevice.TEMPLATE_PREVIEW, pictureImageReader.getSurface());
     }
 
-    public void startPreviewWithImageStream(EventChannel imageStreamChannel)
+    public void startPreviewWithImageStream(EventChannel imageStreamChannel, Boolean persistToFile)
             throws CameraAccessException {
         createCaptureSession(CameraDevice.TEMPLATE_RECORD, imageStreamReader.getSurface());
         Log.i(TAG, "startPreviewWithImageStream");
@@ -1348,7 +1352,7 @@ class Camera
                 new EventChannel.StreamHandler() {
                     @Override
                     public void onListen(Object o, EventChannel.EventSink imageStreamSink) {
-                        setImageStreamImageAvailableListener(imageStreamSink);
+                        setImageStreamImageAvailableListener(imageStreamSink, persistToFile);
                     }
 
                     @Override
@@ -1387,12 +1391,53 @@ class Camera
         cameraCaptureCallback.setCameraState(CameraState.STATE_PREVIEW);
     }
 
-    private void setImageStreamImageAvailableListener(final EventChannel.EventSink imageStreamSink) {
+    private Long lastImage = 0L;
+
+    private void setImageStreamImageAvailableListener(final EventChannel.EventSink imageStreamSink, Boolean persistToFile) {
         imageStreamReader.setOnImageAvailableListener(
                 reader -> {
-                    Image img = reader.acquireNextImage();
+                    Image img = null;
+                    try {
+                        img = reader.acquireNextImage();
+                    } catch (Exception ignored) {}
+
                     // Use acquireNextImage since image reader is only for one image.
                     if (img == null) return;
+
+                    if (lastImage == null || (lastImage > 0 && lastImage > System.currentTimeMillis() - getBufferDuration(persistToFile))) {
+                        img.close();
+                        return;
+                    }
+                    // Block upcoming images
+                    lastImage = null;
+
+
+                    if (persistToFile) {
+                        File outputDir = getOutputDir();
+                        outputDir.mkdirs();
+
+                        try {
+                            File outputFile = File.createTempFile("image_" + System.currentTimeMillis(), ".jpg", outputDir);
+                            backgroundHandler.post(new ImageSaver(img, outputFile, new ImageSaver.Callback() {
+                                @Override
+                                public void onComplete(String absolutePath) {
+                                    final Handler handler = new Handler(Looper.getMainLooper());
+                                    handler.post(() -> imageStreamSink.success(absolutePath));
+
+                                    cleanOutputDir();
+                                    lastImage = System.currentTimeMillis();
+                                }
+
+                                @Override
+                                public void onError(String errorCode, String errorMessage) {
+                                    lastImage = 0L;
+                                }
+                            }));
+                        } catch (Exception ignored) {
+                        }
+
+                        return;
+                    }
 
                     List<Map<String, Object>> planes = new ArrayList<>();
                     for (Image.Plane plane : img.getPlanes()) {
@@ -1427,6 +1472,48 @@ class Camera
                 backgroundHandler);
     }
 
+    private int getBufferDuration(Boolean persistToFile) {
+        if (persistToFile) {
+            return 500;
+        } else {
+            return 100;
+        }
+    }
+
+    @NonNull
+    private File getOutputDir() {
+        return new File(applicationContext.getCacheDir(), "camera");
+    }
+
+    @NonNull
+    private void deleteOutputDirectory() {
+        deleteDir(getOutputDir());
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private void deleteDir(File file) {
+        File[] contents = file.listFiles();
+        if (contents != null) {
+            for (File f : contents) {
+                deleteDir(f);
+            }
+        }
+        file.delete();
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private void cleanOutputDir() {
+        File[] contents = getOutputDir().listFiles();
+
+        if (contents != null) {
+            for (File f : contents) {
+                if (f.lastModified() < System.currentTimeMillis() - 15000) {
+                    f.delete();
+                }
+            }
+        }
+    }
+
     private void closeCaptureSession() {
         if (captureSession != null) {
             Log.i(TAG, "closeCaptureSession");
@@ -1457,6 +1544,8 @@ class Camera
             mediaRecorder.release();
             mediaRecorder = null;
         }
+
+        deleteOutputDirectory();
 
         stopBackgroundThread();
     }
