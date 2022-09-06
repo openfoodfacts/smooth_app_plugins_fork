@@ -1199,7 +1199,7 @@ class Camera
                         result.success(null);
                     }
 
-                    backgroundHandler.postDelayed(reRunNewFocus, 2500);
+                    backgroundHandler.postDelayed(reRunNewFocus, 1750);
                 },
                 result != null ? ((code, message) -> result.error("setFocusPointFailed", "Could not set focus point.", null)) :
                         (code, message) -> {
