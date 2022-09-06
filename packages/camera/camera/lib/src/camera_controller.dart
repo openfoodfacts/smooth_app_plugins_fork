@@ -20,7 +20,7 @@ const MethodChannel _channel = MethodChannel('plugins.flutter.io/camera');
 // TODO(stuartmorgan): Fix this naming the next time there's a breaking change
 // to this package.
 // ignore: camel_case_types
-typedef onLatestImageAvailable = Function(CameraImage image);
+typedef onLatestImageAvailable = Function(dynamic image);
 
 /// Completes with a list of available cameras.
 ///
@@ -420,7 +420,10 @@ class CameraController extends ValueNotifier<CameraValue> {
   /// platforms won't be supported in current setup).
   ///
   // TODO(bmparr): Add settings for resolution and fps.
-  Future<void> startImageStream(onLatestImageAvailable onAvailable) async {
+  Future<void> startImageStream(
+    onLatestImageAvailable onAvailable, {
+    bool persistToFile = false,
+  }) async {
     assert(defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS);
     _throwIfNotInitialized('startImageStream');
@@ -438,7 +441,9 @@ class CameraController extends ValueNotifier<CameraValue> {
     }
 
     try {
-      await _channel.invokeMethod<void>('startImageStream');
+      await _channel.invokeMethod<void>('startImageStream', {
+        'persistToFile': persistToFile,
+      });
       value = value.copyWith(isStreamingImages: true);
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
@@ -455,8 +460,14 @@ class CameraController extends ValueNotifier<CameraValue> {
             throw CameraException(e.code, e.message);
           }
         }
-        onAvailable(
-            CameraImage.fromPlatformData(imageData as Map<dynamic, dynamic>));
+
+        if (imageData is String) {
+          onAvailable(imageData);
+        } else {
+          onAvailable(
+            CameraImage.fromPlatformData(imageData as Map<dynamic, dynamic>),
+          );
+        }
       },
     );
   }
