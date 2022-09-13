@@ -166,6 +166,8 @@ class Camera
      */
     private boolean pausedPreview;
 
+    private boolean persistToFile;
+
     private File captureFile;
 
     /**
@@ -1343,7 +1345,7 @@ class Camera
         createCaptureSession(CameraDevice.TEMPLATE_PREVIEW, pictureImageReader.getSurface());
     }
 
-    public void startPreviewWithImageStream(EventChannel imageStreamChannel, Boolean persistToFile)
+    public void startPreviewWithImageStream(EventChannel imageStreamChannel)
             throws CameraAccessException {
         createCaptureSession(CameraDevice.TEMPLATE_RECORD, imageStreamReader.getSurface());
         Log.i(TAG, "startPreviewWithImageStream");
@@ -1352,7 +1354,7 @@ class Camera
                 new EventChannel.StreamHandler() {
                     @Override
                     public void onListen(Object o, EventChannel.EventSink imageStreamSink) {
-                        setImageStreamImageAvailableListener(imageStreamSink, persistToFile);
+                        setImageStreamImageAvailableListener(imageStreamSink);
                     }
 
                     @Override
@@ -1362,6 +1364,10 @@ class Camera
                         }
                     }
                 });
+    }
+
+    public void changeImageMode(Boolean persistToFile) {
+        this.persistToFile = persistToFile;
     }
 
     /**
@@ -1393,18 +1399,19 @@ class Camera
 
     private Long lastImage = 0L;
 
-    private void setImageStreamImageAvailableListener(final EventChannel.EventSink imageStreamSink, Boolean persistToFile) {
+    private void setImageStreamImageAvailableListener(final EventChannel.EventSink imageStreamSink) {
         imageStreamReader.setOnImageAvailableListener(
                 reader -> {
                     Image img = null;
                     try {
                         img = reader.acquireNextImage();
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
 
                     // Use acquireNextImage since image reader is only for one image.
                     if (img == null) return;
 
-                    if (lastImage == null || (lastImage > 0 && lastImage > System.currentTimeMillis() - getBufferDuration(persistToFile))) {
+                    if (lastImage == null || (lastImage > 0 && lastImage > System.currentTimeMillis() - getBufferDuration())) {
                         img.close();
                         return;
                     }
@@ -1473,7 +1480,7 @@ class Camera
                 backgroundHandler);
     }
 
-    private int getBufferDuration(Boolean persistToFile) {
+    private int getBufferDuration() {
         if (persistToFile) {
             return 500;
         } else {

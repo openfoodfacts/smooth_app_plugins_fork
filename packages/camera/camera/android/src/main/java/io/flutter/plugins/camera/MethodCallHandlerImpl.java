@@ -243,7 +243,17 @@ final class MethodCallHandlerImpl implements MethodChannel.MethodCallHandler {
                 try {
                     Boolean persistToFile = call.argument("persistToFile");
 
-                    camera.startPreviewWithImageStream(imageStreamChannel, persistToFile);
+                    camera.startPreviewWithImageStream(imageStreamChannel);
+                    result.success(null);
+                } catch (Exception e) {
+                    handleException(e, result);
+                }
+                break;
+            }
+            case "changeImageMode": {
+                try {
+                    Boolean persistToFile = call.argument("persistToFile");
+                    camera.changeImageMode(persistToFile);
                     result.success(null);
                 } catch (Exception e) {
                     handleException(e, result);

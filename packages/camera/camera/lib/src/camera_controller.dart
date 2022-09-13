@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:camera/camera.dart';
@@ -470,6 +471,20 @@ class CameraController extends ValueNotifier<CameraValue> {
         }
       },
     );
+  }
+
+  Future<bool> changeImageMode(bool persistToFile) async {
+    try {
+      if (Platform.isAndroid) {
+        await _channel.invokeMethod<void>('changeImageMode', {
+          'persistToFile': persistToFile,
+        });
+      }
+
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   /// Stop streaming images from platform camera.
